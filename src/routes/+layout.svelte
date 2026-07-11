@@ -1,8 +1,33 @@
 <script>
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { currentUser, authLoading, initAuth } from '$lib/stores/auth.js';
+
 	let { children } = $props();
+
+	onMount(() => {
+		const cleanup = initAuth();
+		return cleanup;
+	});
+
+	// Redirect to login if not authenticated (except on /login and /auth/callback)
+	$effect(() => {
+		const publicRoutes = ['/login', '/auth/callback'];
+		const isPublic = publicRoutes.some(r => $page.url.pathname.startsWith(r));
+		if (!$authLoading && !$currentUser && !isPublic) {
+			goto('/login');
+		}
+	});
 </script>
 
-{@render children()}
+{#if $authLoading}
+	<div class="auth-loading">
+		<div class="loading-spinner"></div>
+	</div>
+{:else}
+	{@render children()}
+{/if}
 
 <style>
 	:global(:root) {
@@ -35,5 +60,28 @@
 		height: 100vh;
 		overflow: hidden;
 		-webkit-font-smoothing: antialiased;
+	}
+
+	.auth-loading {
+		position: fixed;
+		inset: 0;
+		background: #030303;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 999;
+	}
+
+	.loading-spinner {
+		width: 32px;
+		height: 32px;
+		border: 2px solid rgba(255,255,255,0.1);
+		border-top-color: rgba(255,255,255,0.6);
+		border-radius: 50%;
+		animation: spin 0.7s linear infinite;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
 	}
 </style>

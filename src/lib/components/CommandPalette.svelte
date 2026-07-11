@@ -61,6 +61,14 @@
 			paletteOpen.set(false);
 		}
 	}
+
+	/**
+	 * @param {string} name
+	 * @returns {any}
+	 */
+	function getIcon(name) {
+		return /** @type {any} */ (icons)[name];
+	}
 </script>
 
 {#if $paletteOpen}
@@ -84,7 +92,7 @@
 					<div class="empty-state">No utilities found for "{query}"</div>
 				{:else}
 					{#each filtered as item, i}
-						{@const IconComp = icons[item.icon]}
+						{@const IconComp = getIcon(item.icon)}
 						<a
 							href={item.href}
 							class="cmd-item"

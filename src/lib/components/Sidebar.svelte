@@ -9,6 +9,7 @@
 		Gamepad2
 	} from '@lucide/svelte';
 
+	/** @type {Record<string, any>} */
 	const iconMap = { LayoutGrid, Briefcase, Wallet, Coffee, Gamepad2 };
 </script>
 
@@ -21,12 +22,12 @@
 	<nav class="nav-section">
 		<div class="nav-label">Library</div>
 		{#each categories as cat}
+			{@const Icon = iconMap[cat.icon]}
 			<button
 				class="nav-item"
 				class:active={$activeCategory === cat.id}
 				onclick={() => activeCategory.set(cat.id)}
 			>
-				{@const Icon = iconMap[cat.icon]}
 				<Icon size={18} />
 				{cat.label}
 			</button>

@@ -1,87 +1,113 @@
 <script>
     import { onMount } from 'svelte';
     import { fade, slide } from 'svelte/transition';
+    import { supabase } from '$lib/supabase.js';
+    import { currentUser } from '$lib/stores/auth.js';
+    import { get } from 'svelte/store';
 
-    let boards = [
-        { id: 1, title: 'Main Tasks', tasks: [{ id: 1, text: 'Welcome to Zenspace To-Do', completed: false }] }
-    ];
-
-    /** @type {any} */
-
+    /** @type {any[]} */
+    let boards = $state([]);
+    /** @type {string} */
     let newBoardTitle = $state('');
-    /** @type {any} */
     let isAddingBoard = $state(false);
+    let loading = $state(true);
 
-    // Helper to auto-focus inputs when shown
-    function focusInput(node) /* @type {any} */ {
+    function focusInput(node) {
         node.focus();
     }
 
-    function saveToLocal() {
-        localStorage.setItem('zenspace-todo-boards', JSON.stringify(boards));
+    async function loadBoards() {
+        const user = get(currentUser);
+        if (!user) return;
+        loading = true;
+
+        const { data: boardData } = await supabase
+            .from('todo_boards')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: true });
+
+        if (boardData) {
+            // Load tasks for each board
+            const { data: taskData } = await supabase
+                .from('todo_tasks')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: true });
+
+            boards = boardData.map(b => ({
+                ...b,
+                newTaskText: '',
+                tasks: (taskData || []).filter(t => t.board_id === b.id)
+            }));
+        }
+        loading = false;
     }
 
-    function addBoard() {
+    async function addBoard() {
         if (!newBoardTitle.trim()) {
             isAddingBoard = false;
             return;
         }
-        boards = [...boards, {
-            id: Date.now(),
-            title: newBoardTitle.trim(),
-            tasks: [],
-            newTaskText: ''
-        }];
+        const user = get(currentUser);
+        if (!user) return;
+
+        const { data, error } = await supabase
+            .from('todo_boards')
+            .insert({ user_id: user.id, title: newBoardTitle.trim() })
+            .select()
+            .single();
+
+        if (!error && data) {
+            boards = [...boards, { ...data, newTaskText: '', tasks: [] }];
+        }
         newBoardTitle = '';
         isAddingBoard = false;
-        saveToLocal();
     }
 
-    function deleteBoard(id) /* @type {any} */ {
-        if (confirm('Delete this board?')) {
+    async function deleteBoard(id) {
+        if (confirm('Delete this board and all its tasks?')) {
             boards = boards.filter(b => b.id !== id);
-            saveToLocal();
+            await supabase.from('todo_boards').delete().eq('id', id);
         }
     }
 
-    function addTask(boardId, e) /* @type {any} */ {
+    async function addTask(boardId) {
         const board = boards.find(b => b.id === boardId);
-        if (!board.newTaskText || !board.newTaskText.trim()) return;
+        if (!board?.newTaskText?.trim()) return;
+        const user = get(currentUser);
+        if (!user) return;
 
-        board.tasks = [...board.tasks, {
-            id: Date.now(),
-            text: board.newTaskText.trim(),
-            completed: false
-        }];
-        board.newTaskText = '';
-        boards = [...boards];
-        saveToLocal();
+        const { data, error } = await supabase
+            .from('todo_tasks')
+            .insert({ user_id: user.id, board_id: boardId, text: board.newTaskText.trim(), completed: false })
+            .select()
+            .single();
+
+        if (!error && data) {
+            board.tasks = [...board.tasks, data];
+            board.newTaskText = '';
+            boards = [...boards];
+        }
     }
 
-    function toggleTask(boardId, taskId) /* @type {any} */ {
+    async function toggleTask(boardId, taskId) {
         const board = boards.find(b => b.id === boardId);
         const task = board.tasks.find(t => t.id === taskId);
         task.completed = !task.completed;
         boards = [...boards];
-        saveToLocal();
+        await supabase.from('todo_tasks').update({ completed: task.completed }).eq('id', taskId);
     }
 
-    function deleteTask(boardId, taskId) /* @type {any} */ {
+    async function deleteTask(boardId, taskId) {
         const board = boards.find(b => b.id === boardId);
         board.tasks = board.tasks.filter(t => t.id !== taskId);
         boards = [...boards];
-        saveToLocal();
+        await supabase.from('todo_tasks').delete().eq('id', taskId);
     }
 
     onMount(() => {
-        const saved = localStorage.getItem('zenspace-todo-boards');
-        if (saved) {
-            try {
-                boards = JSON.parse(saved);
-                // Ensure legacy boards have newTaskText
-                boards.forEach(b => { if (b.newTaskText === undefined) b.newTaskText = ''; });
-            } catch(e) {}
-        }
+        loadBoards();
     });
 </script>
 
@@ -91,59 +117,63 @@
         <h1 class="page-title">To-Do Boards</h1>
     </div>
 
-    <div class="boards-scroll-container">
-        {#each boards as board (board.id)}
-            <div class="board" transition:fade>
-                <div class="board-header">
-                    <h3 class="board-title">{board.title}</h3>
-                    <button class="icon-btn danger" onclick={() => deleteBoard(board.id)}>✕</button>
-                </div>
+    {#if loading}
+        <div class="loading-state">Loading your boards...</div>
+    {:else}
+        <div class="boards-scroll-container">
+            {#each boards as board (board.id)}
+                <div class="board" transition:fade>
+                    <div class="board-header">
+                        <h3 class="board-title">{board.title}</h3>
+                        <button class="icon-btn danger" onclick={() => deleteBoard(board.id)}>✕</button>
+                    </div>
 
-                <div class="tasks-list">
-                    {#each board.tasks as task (task.id)}
-                        <div class="task-item" class:completed={task.completed} transition:slide|local>
-                            <label class="checkbox-container">
-                                <input type="checkbox" checked={task.completed} onchange={() => toggleTask(board.id, task.id)}>
-                                <span class="checkmark"></span>
-                            </label>
-                            <span class="task-text">{task.text}</span>
-                            <button class="icon-btn delete-task" onclick={() => deleteTask(board.id, task.id)}>✕</button>
-                        </div>
-                    {/each}
-                </div>
+                    <div class="tasks-list">
+                        {#each board.tasks as task (task.id)}
+                            <div class="task-item" class:completed={task.completed} transition:slide|local>
+                                <label class="checkbox-container">
+                                    <input type="checkbox" checked={task.completed} onchange={() => toggleTask(board.id, task.id)}>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <span class="task-text">{task.text}</span>
+                                <button class="icon-btn delete-task" onclick={() => deleteTask(board.id, task.id)}>✕</button>
+                            </div>
+                        {/each}
+                    </div>
 
-                <form class="add-task-form" onsubmit={(e) => { e.preventDefault(); addTask(board.id, e); }}>
-                    <input 
-                        type="text" 
-                        class="task-input" 
-                        placeholder="Add a task..." 
-                        bind:value={board.newTaskText}
-                    >
-                    <button type="submit" class="add-btn">+</button>
-                </form>
+                    <form class="add-task-form" onsubmit={(e) => { e.preventDefault(); addTask(board.id); }}>
+                        <input
+                            type="text"
+                            class="task-input"
+                            placeholder="Add a task..."
+                            bind:value={board.newTaskText}
+                        >
+                        <button type="submit" class="add-btn">+</button>
+                    </form>
+                </div>
+            {/each}
+
+            <div class="add-board-container">
+                {#if isAddingBoard}
+                    <form class="add-board-form" onsubmit={(e) => { e.preventDefault(); addBoard(); }} transition:fade>
+                        <input
+                            use:focusInput
+                            type="text"
+                            class="board-input"
+                            placeholder="Board title..."
+                            bind:value={newBoardTitle}
+                            onblur={() => { if(!newBoardTitle) isAddingBoard = false; }}
+                        >
+                        <button type="submit" class="save-board-btn">Add</button>
+                    </form>
+                {:else}
+                    <button class="new-board-btn" onclick={() => isAddingBoard = true}>
+                        + Add New Board
+                    </button>
+                {/if}
             </div>
-        {/each}
-
-        <div class="add-board-container">
-            {#if isAddingBoard}
-                <form class="add-board-form" onsubmit={(e) => { e.preventDefault(); addBoard(); }} transition:fade>
-                    <input 
-                        use:focusInput
-                        type="text" 
-                        class="board-input" 
-                        placeholder="Board title..." 
-                        bind:value={newBoardTitle}
-                        onblur={() => { if(!newBoardTitle) isAddingBoard = false; }}
-                    >
-                    <button type="submit" class="save-board-btn">Add</button>
-                </form>
-            {:else}
-                <button class="new-board-btn" onclick={() => isAddingBoard = true}>
-                    + Add New Board
-                </button>
-            {/if}
         </div>
-    </div>
+    {/if}
 </div>
 
 <style>
@@ -189,6 +219,15 @@
         color: #fff;
     }
 
+    .loading-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        color: #525252;
+        font-size: 15px;
+    }
+
     .boards-scroll-container {
         display: flex;
         flex: 1;
@@ -198,14 +237,8 @@
         align-items: flex-start;
     }
 
-    .boards-scroll-container::-webkit-scrollbar {
-        height: 8px;
-    }
-
-    .boards-scroll-container::-webkit-scrollbar-thumb {
-        background: rgba(255,255,255,0.1);
-        border-radius: 4px;
-    }
+    .boards-scroll-container::-webkit-scrollbar { height: 8px; }
+    .boards-scroll-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
 
     .board {
         min-width: 320px;
@@ -242,15 +275,8 @@
         transition: all 0.2s;
     }
 
-    .icon-btn:hover {
-        background: rgba(255,255,255,0.1);
-        color: #fff;
-    }
-    
-    .icon-btn.danger:hover {
-        color: #ef4444;
-        background: rgba(239,68,68,0.1);
-    }
+    .icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .icon-btn.danger:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
 
     .tasks-list {
         flex: 1;
@@ -275,33 +301,14 @@
         transition: all 0.2s;
     }
 
-    .task-item:hover {
-        background: rgba(255,255,255,0.05);
-        border-color: rgba(255,255,255,0.1);
-    }
+    .task-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+    .task-item.completed .task-text { text-decoration: line-through; opacity: 0.5; }
 
-    .task-item.completed .task-text {
-        text-decoration: line-through;
-        opacity: 0.5;
-    }
+    .task-text { flex: 1; font-size: 14px; line-height: 1.4; word-break: break-word; }
 
-    .task-text {
-        flex: 1;
-        font-size: 14px;
-        line-height: 1.4;
-        word-break: break-word;
-    }
+    .delete-task { opacity: 0; font-size: 12px; }
+    .task-item:hover .delete-task { opacity: 1; }
 
-    .delete-task {
-        opacity: 0;
-        font-size: 12px;
-    }
-
-    .task-item:hover .delete-task {
-        opacity: 1;
-    }
-
-    /* Custom Checkbox */
     .checkbox-container {
         display: block;
         position: relative;
@@ -310,53 +317,36 @@
         width: 20px;
         height: 20px;
         user-select: none;
+        flex-shrink: 0;
     }
-    
-    .checkbox-container input {
-        position: absolute;
-        opacity: 0;
-        cursor: pointer;
-        height: 0;
-        width: 0;
-    }
-    
+
+    .checkbox-container input { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
+
     .checkmark {
         position: absolute;
-        top: 0;
-        left: 0;
-        height: 20px;
-        width: 20px;
+        top: 0; left: 0;
+        height: 20px; width: 20px;
         background-color: transparent;
         border: 2px solid rgba(255,255,255,0.3);
         border-radius: 6px;
         transition: all 0.2s;
     }
-    
-    .checkbox-container:hover input ~ .checkmark {
-        border-color: rgba(255,255,255,0.6);
-    }
-    
-    .checkbox-container input:checked ~ .checkmark {
-        background-color: #10b981;
-        border-color: #10b981;
-    }
-    
+
+    .checkbox-container:hover input ~ .checkmark { border-color: rgba(255,255,255,0.6); }
+    .checkbox-container input:checked ~ .checkmark { background-color: #10b981; border-color: #10b981; }
+
     .checkmark:after {
         content: "";
         position: absolute;
         display: none;
-        left: 6px;
-        top: 2px;
-        width: 5px;
-        height: 10px;
+        left: 6px; top: 2px;
+        width: 5px; height: 10px;
         border: solid white;
         border-width: 0 2px 2px 0;
         transform: rotate(45deg);
     }
-    
-    .checkbox-container input:checked ~ .checkmark:after {
-        display: block;
-    }
+
+    .checkbox-container input:checked ~ .checkmark:after { display: block; }
 
     .add-task-form {
         display: flex;
@@ -374,20 +364,16 @@
         color: #fff;
         font-size: 14px;
         outline: none;
-        transition: all 0.2s;
+        font-family: inherit;
     }
 
-    .task-input:focus {
-        background: rgba(255,255,255,0.08);
-        border-color: rgba(255,255,255,0.2);
-    }
+    .task-input:focus { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
 
     .add-btn {
         background: #fff;
         color: #000;
         border: none;
-        width: 36px;
-        height: 36px;
+        width: 36px; height: 36px;
         border-radius: 8px;
         font-size: 18px;
         font-weight: 600;
@@ -396,15 +382,10 @@
         align-items: center;
         justify-content: center;
     }
-    
-    .add-btn:hover {
-        background: #e5e5e5;
-    }
 
-    .add-board-container {
-        min-width: 320px;
-        width: 320px;
-    }
+    .add-btn:hover { background: #e5e5e5; }
+
+    .add-board-container { min-width: 320px; width: 320px; }
 
     .new-board-btn {
         width: 100%;
@@ -417,13 +398,10 @@
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s;
+        font-family: inherit;
     }
 
-    .new-board-btn:hover {
-        background: rgba(255,255,255,0.08);
-        border-color: rgba(255,255,255,0.4);
-        color: #fff;
-    }
+    .new-board-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.4); color: #fff; }
 
     .add-board-form {
         background: #141414;
@@ -443,6 +421,7 @@
         color: #fff;
         font-size: 14px;
         outline: none;
+        font-family: inherit;
     }
 
     .save-board-btn {
@@ -454,5 +433,6 @@
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
+        font-family: inherit;
     }
 </style>

@@ -1,15 +1,18 @@
 <script>
     import { onMount } from 'svelte';
     import { slide } from 'svelte/transition';
+    import { supabase } from '$lib/supabase.js';
+    import { currentUser } from '$lib/stores/auth.js';
+    import { get } from 'svelte/store';
 
     const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const NUM_DAYS = 7;
 
-    /** @type {any} */
-
+    /** @type {any[]} */
     let habits = $state([]);
-    /** @type {any} */
+    /** @type {string} */
     let newHabitText = $state('');
+    let loading = $state(true);
+    let saving = $state(false);
 
     function getWeekDates() {
         const today = new Date();
@@ -22,48 +25,70 @@
         return week;
     }
 
-    /** @type {any} */
-
     let weekDates = $state(getWeekDates());
 
     function getTodayKey() {
         return new Date().toISOString().split('T')[0];
     }
 
-    function save() {
-        localStorage.setItem('zenspace-habits', JSON.stringify(habits));
-    }
-
-    function addHabit() {
-        if (!newHabitText.trim()) return;
-        habits = [...habits, {
-            id: Date.now(),
-            name: newHabitText.trim(),
-            completedDays: {}
-        }];
-        newHabitText = '';
-        save();
-    }
-
-    function toggleDay(habitId, dateKey) /* @type {any} */ {
-        const habit = habits.find(h => h.id === habitId);
-        if (habit.completedDays[dateKey]) {
-            delete habit.completedDays[dateKey];
-        } else {
-            habit.completedDays[dateKey] = true;
+    async function loadHabits() {
+        const user = get(currentUser);
+        if (!user) return;
+        loading = true;
+        const { data, error } = await supabase
+            .from('habits')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: true });
+        if (!error && data) {
+            habits = data.map(h => ({
+                ...h,
+                completedDays: h.completed_days || {}
+            }));
         }
+        loading = false;
+    }
+
+    async function addHabit() {
+        if (!newHabitText.trim()) return;
+        const user = get(currentUser);
+        if (!user) return;
+        saving = true;
+        const { data, error } = await supabase
+            .from('habits')
+            .insert({ user_id: user.id, name: newHabitText.trim(), completed_days: {} })
+            .select()
+            .single();
+        if (!error && data) {
+            habits = [...habits, { ...data, completedDays: {} }];
+        }
+        newHabitText = '';
+        saving = false;
+    }
+
+    async function toggleDay(habit, dateKey) {
+        const newDays = { ...habit.completedDays };
+        if (newDays[dateKey]) {
+            delete newDays[dateKey];
+        } else {
+            newDays[dateKey] = true;
+        }
+        // Optimistic update
+        habit.completedDays = newDays;
         habits = [...habits];
-        save();
+        await supabase
+            .from('habits')
+            .update({ completed_days: newDays })
+            .eq('id', habit.id);
     }
 
-    function deleteHabit(id) /* @type {any} */ {
+    async function deleteHabit(id) {
         habits = habits.filter(h => h.id !== id);
-        save();
+        await supabase.from('habits').delete().eq('id', id);
     }
 
-    function getStreak(habit) /* @type {any} */ {
-        /** @type {any} */
-        let streak = $state(0);
+    function getStreak(habit) {
+        let streak = 0;
         const today = new Date();
         for (let i = 0; i < 30; i++) {
             const d = new Date(today);
@@ -75,15 +100,12 @@
         return streak;
     }
 
-    function isToday(dateKey) /* @type {any} */ {
+    function isToday(dateKey) {
         return dateKey === getTodayKey();
     }
 
     onMount(() => {
-        const saved = localStorage.getItem('zenspace-habits');
-        if (saved) {
-            try { habits = JSON.parse(saved); } catch(e) {}
-        }
+        loadHabits();
     });
 </script>
 
@@ -109,54 +131,61 @@
                     placeholder="Add a new habit..."
                     bind:value={newHabitText}
                     autocomplete="off"
+                    disabled={saving}
                 />
-                <button type="submit" class="primary-btn">+ Add</button>
+                <button type="submit" class="primary-btn" disabled={saving}>
+                    {saving ? '...' : '+ Add'}
+                </button>
             </form>
 
-            <div class="tracker-table">
-                <div class="table-header">
-                    <div class="habit-col">Habit</div>
-                    <div class="days-row">
-                        {#each weekDates as dateKey}
-                            <div class="day-header" class:today={isToday(dateKey)}>
-                                {DAY_LABELS[new Date(dateKey + 'T00:00:00').getDay()]}
-                                <span>{new Date(dateKey + 'T00:00:00').getDate()}</span>
-                            </div>
-                        {/each}
-                    </div>
-                    <div class="streak-col">Streak</div>
-                    <div class="action-col"></div>
-                </div>
-
-                {#if habits.length === 0}
-                    <div class="empty-state">No habits yet. Add one above to start tracking!</div>
-                {/if}
-
-                {#each habits as habit (habit.id)}
-                    <div class="habit-row" transition:slide>
-                        <div class="habit-name">{habit.name}</div>
+            {#if loading}
+                <div class="loading-state">Loading your habits...</div>
+            {:else}
+                <div class="tracker-table">
+                    <div class="table-header">
+                        <div class="habit-col">Habit</div>
                         <div class="days-row">
                             {#each weekDates as dateKey}
-                                <button
-                                    class="day-cell"
-                                    class:checked={habit.completedDays[dateKey]}
-                                    class:today={isToday(dateKey)}
-                                    onclick={() => toggleDay(habit.id, dateKey)}
-                                    aria-label="Toggle {dateKey}"
-                                >
-                                    {#if habit.completedDays[dateKey]}✓{/if}
-                                </button>
+                                <div class="day-header" class:today={isToday(dateKey)}>
+                                    {DAY_LABELS[new Date(dateKey + 'T00:00:00').getDay()]}
+                                    <span>{new Date(dateKey + 'T00:00:00').getDate()}</span>
+                                </div>
                             {/each}
                         </div>
-                        <div class="streak-col">
-                            <span class="streak-badge">🔥 {getStreak(habit)}</span>
-                        </div>
-                        <div class="action-col">
-                            <button class="delete-btn" onclick={() => deleteHabit(habit.id)}>✕</button>
-                        </div>
+                        <div class="streak-col">Streak</div>
+                        <div class="action-col"></div>
                     </div>
-                {/each}
-            </div>
+
+                    {#if habits.length === 0}
+                        <div class="empty-state">No habits yet. Add one above to start tracking!</div>
+                    {/if}
+
+                    {#each habits as habit (habit.id)}
+                        <div class="habit-row" transition:slide>
+                            <div class="habit-name">{habit.name}</div>
+                            <div class="days-row">
+                                {#each weekDates as dateKey}
+                                    <button
+                                        class="day-cell"
+                                        class:checked={habit.completedDays[dateKey]}
+                                        class:today={isToday(dateKey)}
+                                        onclick={() => toggleDay(habit, dateKey)}
+                                        aria-label="Toggle {dateKey}"
+                                    >
+                                        {#if habit.completedDays[dateKey]}✓{/if}
+                                    </button>
+                                {/each}
+                            </div>
+                            <div class="streak-col">
+                                <span class="streak-badge">🔥 {getStreak(habit)}</span>
+                            </div>
+                            <div class="action-col">
+                                <button class="delete-btn" onclick={() => deleteHabit(habit.id)}>✕</button>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
         </div>
     </main>
 </div>
@@ -269,9 +298,21 @@
         white-space: nowrap;
     }
 
-    .primary-btn:hover {
+    .primary-btn:hover:not(:disabled) {
         background: #bef264;
         transform: translateY(-1px);
+    }
+
+    .primary-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .loading-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #525252;
+        font-size: 15px;
     }
 
     .tracker-table {

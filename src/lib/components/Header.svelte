@@ -1,6 +1,7 @@
 <script>
 	import { paletteOpen } from '$lib/stores/app.js';
-	import { Search } from '@lucide/svelte';
+	import { currentUser, signOut } from '$lib/stores/auth.js';
+	import { Search, LogOut } from '@lucide/svelte';
 
 	let timeStr = $state('00:00');
 	let dateStr = $state('');
@@ -22,11 +23,25 @@
 		const interval = setInterval(updateClock, 1000);
 		return () => clearInterval(interval);
 	});
+
+	/** Get first name from user metadata */
+	const userName = $derived(
+		$currentUser?.user_metadata?.full_name?.split(' ')[0] ||
+		$currentUser?.user_metadata?.name?.split(' ')[0] ||
+		$currentUser?.email?.split('@')[0] ||
+		'there'
+	);
+
+	const userAvatar = $derived($currentUser?.user_metadata?.avatar_url || null);
+
+	async function handleSignOut() {
+		await signOut();
+	}
 </script>
 
 <header class="header">
 	<div class="greeting">
-		<h1>{greeting}</h1>
+		<h1>{greeting}, {userName} 👋</h1>
 		<p>Welcome back to your workspace.</p>
 	</div>
 
@@ -41,6 +56,20 @@
 			<div class="time">{timeStr}</div>
 			<div class="date">{dateStr}</div>
 		</div>
+
+		<!-- User menu -->
+		{#if $currentUser}
+			<div class="user-menu">
+				{#if userAvatar}
+					<img src={userAvatar} alt="avatar" class="user-avatar" referrerpolicy="no-referrer" />
+				{:else}
+					<div class="user-avatar-fallback">{userName[0]?.toUpperCase()}</div>
+				{/if}
+				<button class="logout-btn" onclick={handleSignOut} title="Sign out" id="btn-signout">
+					<LogOut size={14} />
+				</button>
+			</div>
+		{/if}
 	</div>
 </header>
 
@@ -125,5 +154,55 @@
 		color: var(--text-dim);
 		text-transform: uppercase;
 		letter-spacing: 1px;
+	}
+
+	.user-menu {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding-left: 16px;
+		border-left: 1px solid var(--border);
+	}
+
+	.user-avatar {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		object-fit: cover;
+		border: 1px solid var(--border-hover);
+	}
+
+	.user-avatar-fallback {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: rgba(255,255,255,0.1);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--text);
+		border: 1px solid var(--border-hover);
+	}
+
+	.logout-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		background: transparent;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		color: var(--text-dim);
+		cursor: pointer;
+		transition: var(--transition);
+	}
+
+	.logout-btn:hover {
+		background: rgba(239,68,68,0.1);
+		border-color: rgba(239,68,68,0.3);
+		color: #ef4444;
 	}
 </style>

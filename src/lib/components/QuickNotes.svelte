@@ -1,18 +1,41 @@
 <script>
 	import { PenLine } from '@lucide/svelte';
+	import { supabase } from '$lib/supabase.js';
+	import { currentUser } from '$lib/stores/auth.js';
+	import { get } from 'svelte/store';
 
 	let notesValue = $state('');
+	/** @type {ReturnType<typeof setTimeout>|null} */
+	let saveTimer = null;
 
+	// Load from Supabase on mount
 	$effect(() => {
-		// Load from localStorage on mount
-		if (typeof window !== 'undefined') {
-			notesValue = localStorage.getItem('zenspace_quick_notes') || '';
-		}
+		const user = get(currentUser);
+		if (!user) return;
+		supabase
+			.from('quick_notes')
+			.select('content')
+			.eq('user_id', user.id)
+			.maybeSingle()
+			.then(({ data }) => {
+				if (data) notesValue = data.content || '';
+			});
 	});
 
-	function handleInput(e) /* @type {any} */ {
+	function handleInput(/** @type {any} */ e) {
 		notesValue = e.target.value;
-		localStorage.setItem('zenspace_quick_notes', notesValue);
+		// Debounce save by 800ms
+		if (saveTimer) clearTimeout(saveTimer);
+		saveTimer = setTimeout(() => saveNotes(), 800);
+	}
+
+	async function saveNotes() {
+		const user = get(currentUser);
+		if (!user) return;
+		await supabase.from('quick_notes').upsert(
+			{ user_id: user.id, content: notesValue, updated_at: new Date().toISOString() },
+			{ onConflict: 'user_id' }
+		);
 	}
 </script>
 
