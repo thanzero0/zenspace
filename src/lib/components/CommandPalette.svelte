@@ -41,7 +41,7 @@
 		if (typeof window === 'undefined') return;
 
 		/** @param {KeyboardEvent} e */
-		function handleKeydown(e) {
+		function handleKeydown(e) /* @type {any} */ {
 			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
 				e.preventDefault();
 				paletteOpen.update((v) => !v);
@@ -56,7 +56,7 @@
 	});
 
 	/** @param {MouseEvent} e */
-	function handleBackdropClick(e) {
+	function handleBackdropClick(e) /* @type {any} */ {
 		if (e.target === e.currentTarget) {
 			paletteOpen.set(false);
 		}
@@ -93,7 +93,7 @@
 						>
 							<div class="cmd-icon">
 								{#if IconComp}
-									<svelte:component this={IconComp} size={16} />
+									<IconComp size={16} />
 								{/if}
 							</div>
 							<div class="cmd-item-info">

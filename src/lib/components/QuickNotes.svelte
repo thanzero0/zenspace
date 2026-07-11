@@ -10,7 +10,7 @@
 		}
 	});
 
-	function handleInput(e) {
+	function handleInput(e) /* @type {any} */ {
 		notesValue = e.target.value;
 		localStorage.setItem('zenspace_quick_notes', notesValue);
 	}

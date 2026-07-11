@@ -26,7 +26,7 @@
 				class:active={$activeCategory === cat.id}
 				onclick={() => activeCategory.set(cat.id)}
 			>
-				<svelte:component this={iconMap[cat.icon]} size={18} />
+				<iconMap[cat.icon] size={18} />
 				{cat.label}
 			</button>
 		{/each}

@@ -17,7 +17,7 @@ export const utilities = [
 		title: 'To-Do List',
 		description: 'Productivity-focused task manager with drag-and-drop mechanics. Master your daily workflow.',
 		icon: 'CheckCircle',
-		href: '/Gen 1/Utility-To-Do-List/index.html',
+		href: '/todo',
 		category: 'productivity',
 		size: 'wide'
 	},
@@ -25,7 +25,7 @@ export const utilities = [
 		title: 'Calendar',
 		description: 'Modern, responsive digital calendar with theme customization.',
 		icon: 'Calendar',
-		href: '/Gen 1/Utility-Calender/index.html',
+		href: '/calendar',
 		category: 'productivity',
 		size: 'default'
 	},
@@ -33,7 +33,7 @@ export const utilities = [
 		title: 'Calculator',
 		description: 'Clean scientific calculator with history and premium aesthetics.',
 		icon: 'Calculator',
-		href: '/Gen 1/Utility-Calculator/index.html',
+		href: '/calculator',
 		category: 'finance',
 		size: 'default'
 	},
@@ -41,7 +41,7 @@ export const utilities = [
 		title: 'Clock',
 		description: 'Elegant analog and digital clock with multiple time zones.',
 		icon: 'Clock',
-		href: '/Gen 1/Utility-Clock/index.html',
+		href: '/clock',
 		category: 'productivity',
 		size: 'default'
 	},
@@ -49,7 +49,7 @@ export const utilities = [
 		title: 'Notepad',
 		description: 'Minimalist markdown-ready notepad for quick thoughts.',
 		icon: 'FileText',
-		href: '/Gen 1/Utility-Notepad/index.html',
+		href: '/notepad',
 		category: 'productivity',
 		size: 'default'
 	},
@@ -57,7 +57,7 @@ export const utilities = [
 		title: 'Pomodoro',
 		description: 'Focus timer designed for deep work sessions.',
 		icon: 'Timer',
-		href: '/Gen 1/Utility-Pomodoro/index.html',
+		href: '/pomodoro',
 		category: 'productivity',
 		size: 'default'
 	},
@@ -65,7 +65,7 @@ export const utilities = [
 		title: 'Habit Tracker',
 		description: 'Visualize your progress and build consistent routines with beautiful data charts.',
 		icon: 'LineChart',
-		href: '/Gen 1/Utility-Habit-Tracker/index.html',
+		href: '/habit',
 		category: 'lifestyle',
 		size: 'wide'
 	},
@@ -73,7 +73,7 @@ export const utilities = [
 		title: 'Daily Journal',
 		description: 'A private space for your daily reflections and moods.',
 		icon: 'BookOpen',
-		href: '/Gen 1/Utility-Journal-Daily/index.html',
+		href: '/journal',
 		category: 'lifestyle',
 		size: 'default'
 	},
@@ -81,7 +81,7 @@ export const utilities = [
 		title: 'Budget Planner',
 		description: 'Manage your finances with intuitive expense tracking.',
 		icon: 'Wallet',
-		href: '/Gen 2/Utility-Budget-Planner/index.html',
+		href: '/budget',
 		category: 'finance',
 		size: 'default'
 	},
@@ -89,7 +89,7 @@ export const utilities = [
 		title: 'Weekly Planner',
 		description: 'Plan your week ahead with a clean, grid-based interface.',
 		icon: 'CalendarDays',
-		href: '/Gen 2/Utility-Weekly-Planner/index.html',
+		href: '/weekly',
 		category: 'productivity',
 		size: 'default'
 	},
@@ -97,7 +97,7 @@ export const utilities = [
 		title: 'Goal Tracker',
 		description: 'Break down big dreams into actionable milestones.',
 		icon: 'Target',
-		href: '/Gen 2/Utility-Goal-Tracker/index.html',
+		href: '/goal',
 		category: 'lifestyle',
 		size: 'default'
 	},
@@ -105,7 +105,7 @@ export const utilities = [
 		title: 'Focus Mode',
 		description: 'Ambient sounds and distraction-free workspace.',
 		icon: 'Brain',
-		href: '/Gen 2/Utility-Focus-Mode/index.html',
+		href: '/focus',
 		category: 'productivity',
 		size: 'default'
 	},
@@ -113,7 +113,7 @@ export const utilities = [
 		title: 'Quote Generator',
 		description: 'Daily inspiration to keep you motivated and centered.',
 		icon: 'Quote',
-		href: '/Gen 2/Utility-Quote-Generator/index.html',
+		href: '/quotes',
 		category: 'lifestyle',
 		size: 'default'
 	},
@@ -121,7 +121,7 @@ export const utilities = [
 		title: 'Coin Flip',
 		description: 'Quick decision maker with realistic 3D animation.',
 		icon: 'CircleDot',
-		href: '/Gen 2/Utility-Coin-Flip/index.html',
+		href: '/coin',
 		category: 'fun',
 		size: 'default'
 	},
@@ -129,7 +129,7 @@ export const utilities = [
 		title: 'Button Stressing',
 		description: 'Satisfying interactive playground for stress relief.',
 		icon: 'MousePointer2',
-		href: '/Gen 2/Utility-Button-Stressing/index.html',
+		href: '/stressing/button',
 		category: 'fun',
 		size: 'default'
 	},
@@ -137,7 +137,7 @@ export const utilities = [
 		title: 'Popup Stressing',
 		description: 'Chaotic yet controlled window management challenge.',
 		icon: 'Layers',
-		href: '/Gen 2/Utility-Popup-Stressing/index.html',
+		href: '/stressing/popup',
 		category: 'fun',
 		size: 'default'
 	}

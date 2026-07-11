@@ -12,7 +12,7 @@
 	 * Get the iconNode array for the dynamic Icon component.
 	 * @param {string} name - PascalCase icon name
 	 */
-	function getIconNode(name) {
+	function getIconNode(name) /* @type {any} */ {
 		const iconData = icons[name];
 		// Each icon export is [name, iconNode] or a Svelte component.
 		// In @lucide/svelte, each named export is a Svelte component.
@@ -25,7 +25,7 @@
 	});
 
 	/** @param {MouseEvent} e */
-	function handleMouseMove(e) {
+	function handleMouseMove(e) /* @type {any} */ {
 		if (!glowEl) return;
 		const rect = /** @type {HTMLElement} */ (e.currentTarget).getBoundingClientRect();
 		const x = e.clientX - rect.left;
@@ -56,7 +56,7 @@
 	<div class="card-glow" bind:this={glowEl}></div>
 	<div class="card-icon-wrapper">
 		{#if IconComponent}
-			<svelte:component this={IconComponent} size={20} />
+			<IconComponent size={20} />
 		{/if}
 	</div>
 	<h3>{title}</h3>
