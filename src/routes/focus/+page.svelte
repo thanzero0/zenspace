@@ -154,7 +154,7 @@
             {#if activeSound}
                 <div class="volume-row">
                     <span>🔈</span>
-                    <input type="range" min="0" max="1" step="0.01" bind:value={volume} on:input={updateVolume}>
+                    <input type="range" min="0" max="1" step="0.01" bind:value={volume} oninput={updateVolume}>
                     <span>🔊</span>
                 </div>
             {/if}

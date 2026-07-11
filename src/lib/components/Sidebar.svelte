@@ -26,7 +26,8 @@
 				class:active={$activeCategory === cat.id}
 				onclick={() => activeCategory.set(cat.id)}
 			>
-				<iconMap[cat.icon] size={18} />
+				{@const Icon = iconMap[cat.icon]}
+				<Icon size={18} />
 				{cat.label}
 			</button>
 		{/each}

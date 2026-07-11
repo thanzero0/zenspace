@@ -112,7 +112,7 @@
                     {/each}
                 </div>
 
-                <form class="add-task-form" onsubmit={(e) => { e.preventDefault(); (e) => addTask(board.id, e); }}>
+                <form class="add-task-form" onsubmit={(e) => { e.preventDefault(); addTask(board.id, e); }}>
                     <input 
                         type="text" 
                         class="task-input" 
@@ -133,7 +133,7 @@
                         class="board-input" 
                         placeholder="Board title..." 
                         bind:value={newBoardTitle}
-                        on:blur={() => { if(!newBoardTitle) isAddingBoard = false; }}
+                        onblur={() => { if(!newBoardTitle) isAddingBoard = false; }}
                     >
                     <button type="submit" class="save-board-btn">Add</button>
                 </form>

@@ -78,8 +78,8 @@
 <div
     class="app-container"
     role="application"
-    on:mousemove={onMouseMove}
-    on:mouseup={onMouseUp}
+    onmousemove={onMouseMove}
+    onmouseup={onMouseUp}
 >
     <div class="header">
         <div class="brand">🪟 Popup Stressing</div>
@@ -108,7 +108,7 @@
             >
                 <div
                     class="popup-titlebar"
-                    on:mousedown={(e) => startDrag(e, popup)}
+                    onmousedown={(e) => startDrag(e, popup)}
                 >
                     <span class="popup-title">Alert #{popup.id}</span>
                     <div class="window-controls">

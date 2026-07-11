@@ -117,7 +117,7 @@
                     class="tab {tab.id === activeTabId ? 'active' : ''}" 
                     role="button" tabindex="0"
                     onclick={() => { activeTabId = tab.id; setTimeout(updateStats, 10); }}
-                    on:dblclick={() => renameTab(tab.id)}
+                    ondblclick={() => renameTab(tab.id)}
                 >
                     {tab.name}
                     <button class="close-btn" on:click|stopPropagation={() => closeTab(tab.id)}>×</button>
@@ -132,9 +132,9 @@
         <textarea 
             bind:this={textareaElement}
             bind:value={activeTab.content} 
-            on:input={handleInput}
+            oninput={handleInput}
             onclick={updateStats}
-            on:keyup={updateStats}
+            onkeyup={updateStats}
             placeholder="Start writing..."
             spellcheck="false"
         ></textarea>

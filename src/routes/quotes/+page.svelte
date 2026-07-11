@@ -70,7 +70,7 @@
     <div class="main">
         <div class="quote-card">
             {#if isVisible}
-                <div class="quote-content" transition:fade={{ duration: 300 }}>
+                <div class="quote-content" transitionfade={{ duration: 300 }}>
                     <div class="quote-mark">"</div>
                     <blockquote class="quote-text">{currentQuote.text}</blockquote>
                     <cite class="quote-author">— {currentQuote.author}</cite>
